@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sparkit"
+readme = "README.md"
+requires-python = ">=3.10.0"
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sparkit.version.__version__"}
+dependencies = {file = ["requirements.txt"]}
