@@ -20,7 +20,4 @@ def get(objects: list[object], default=None, **kwargs) -> object | None:
     if length > 1:
         raise MultipleObjectsReturned(n=length)
 
-    if length == 0:
-        return default
-
-    return filtered[0]
+    return default if length == 0 else filtered[0]

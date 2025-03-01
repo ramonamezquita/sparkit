@@ -1,0 +1,19 @@
+{
+    "name": "sparkit-dev",
+    "dockerComposeFile": "docker-compose.devcontainer.yml",
+    "service": "workspace",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash"
+                    }
+                },
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": ["ms-python.python"]
+        }
+    }
+}

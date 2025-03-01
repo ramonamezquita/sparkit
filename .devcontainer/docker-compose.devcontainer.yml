@@ -1,0 +1,59 @@
+# This compose file defines the services required for a SparkFlow development 
+# environment using containers. The setup enables easy access to necessary tools 
+# and services like:
+# - MinIO: S3-compatible object storage for testing.
+# - PostgreSQL: Relational database service for Spark data applications.
+#
+# PostgreSQL `psql` connection command:
+# psql -U ${POSTGRES_USER} -h ${POSTGRES_HOST}
+#
+# Prerequisites:
+# - Ensure the `.env` file contains the required environment variables (see `.env.template`).
+# - Install Docker and Docker Compose.
+
+services:
+
+  workspace:
+    build:
+      context: ..
+      dockerfile: ./.devcontainer/workspace/Dockerfile
+    image: sparkflowdev-workspace
+    container_name: sparkflowdev-workspace
+    env_file: .env
+    volumes:
+      # Mount a volume on the build context.
+      - ../:/workspace
+
+  minio:
+    image: minio/minio
+    container_name: sparkflowdev-minio
+    expose:
+      - 9000
+      - 9001
+    ports:
+      - 9000:9000
+      - 9001:9001
+    env_file: .env
+    volumes:
+      - minio_data:/data
+    entrypoint: minio server --console-address ":9001" /data
+    
+  postgres:
+    image: postgres:alpine
+    container_name: sparkflowdev-postgres
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
+  minio_data:
+  
+  
