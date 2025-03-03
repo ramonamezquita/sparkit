@@ -1,32 +1,33 @@
+from typing import Callable
+
 import pyspark.sql.functions as F
 from pyspark import keyword_only
 from pyspark.sql import DataFrame
-from sparkml_base_classes import TransformerBaseClass
 
 from sparkit.registry import Registry
-from sparkit.typing import ColumnOrName, SQLFunction
 
 registry = Registry(prefix="column_")
 
 
 @registry("regex_replace")
-class ColumnRegexReplace(TransformerBaseClass):
+class ColumnRegexReplace:
     """Custom Transformer wrapper class for F.regexp_replace"""
 
-    @keyword_only
     def __init__(
         self,
-        cols: list[str] = None,
-        pattern: str = None,
-        replacement: str = None,
+        cols: list[str],
+        pattern: str,
+        replacement: str,
     ):
-        super().__init__()
+        self.cols = cols
+        self.pattern = pattern
+        self.replacement = replacement
 
-    def _transform(self, X: DataFrame) -> DataFrame:
+    def transform(self, X: DataFrame) -> DataFrame:
         # fmt: off
         cols = [
-            F.regexp_replace(col, self._pattern, self._replacement).alias(col) 
-            if col in self._cols else X[col] 
+            F.regexp_replace(col, self.pattern, self.replacement).alias(col) 
+            if col in self.cols else X[col] 
             for col in X.columns
         ]
         # fmt: on
@@ -35,27 +36,26 @@ class ColumnRegexReplace(TransformerBaseClass):
 
 
 @registry("cast")
-class ColumnCast(TransformerBaseClass):
+class ColumnCast:
     """Cast multiple columns into given types."""
 
-    @keyword_only
-    def __init__(self, dtypes: dict = None):
-        super().__init__()
+    def __init__(self, dtypes: dict):
+        self.dtypes = dtypes
 
-    def _transform(self, X: DataFrame) -> DataFrame:
+    def transform(self, X: DataFrame) -> DataFrame:
         all_dtypes = {col: dtype for col, dtype in X.dtypes}
-        all_dtypes.update(self._dtypes)
+        all_dtypes.update(self.dtypes)
         cols = [F.col(col).cast(dtype) for col, dtype in all_dtypes.items()]
         return X.select(*cols)
 
 
 @registry("mapper")
-class ColumnMapper(TransformerBaseClass):
+class ColumnMapper:
     """Custom Transformer wrapper class for DataFrame.withColumnsRenamed.
 
     From Docs:
     Returns a new DataFrame by renaming multiple columns.
-    This is a no-op if the schema doesn’t contain the given column names.
+    This is a no-op if the schema doesn't contain the given column names.
 
     Parameters
     ----------
@@ -63,16 +63,15 @@ class ColumnMapper(TransformerBaseClass):
         A dict of existing column names and corresponding desired column names.
     """
 
-    @keyword_only
-    def __init__(self, cols_map: dict = None):
-        super().__init__()
+    def __init__(self, cols_map: dict):
+        self.cols_map = cols_map
 
-    def _transform(self, X: DataFrame) -> DataFrame:
-        return X.withColumnsRenamed(self._cols_map)
+    def transform(self, X: DataFrame) -> DataFrame:
+        return X.withColumnsRenamed(self.cols_map)
 
 
 @registry("dropper")
-class ColumnDropper(TransformerBaseClass):
+class ColumnDropper:
     """Custom Transformer wrapper class for DataFrame.drop.
 
     From Docs:
@@ -85,16 +84,15 @@ class ColumnDropper(TransformerBaseClass):
         A name of the column, or the Column to drop.
     """
 
-    @keyword_only
-    def __init__(self, col: ColumnOrName = None):
-        super().__init__()
+    def __init__(self, col: str):
+        self.col = col
 
-    def _transform(self, X: DataFrame) -> DataFrame:
-        return X.drop(self._col)
+    def transform(self, X: DataFrame) -> DataFrame:
+        return X.drop(self.col)
 
 
 @registry("transformer")
-class ColumnTransformer(TransformerBaseClass):
+class ColumnTransformer:
     """Constructs a transformer from a pyspark sql function.
 
     A ColumnTransformer forwards the column object from its input dataframe
@@ -119,22 +117,25 @@ class ColumnTransformer(TransformerBaseClass):
     @keyword_only
     def __init__(
         self,
-        col: ColumnOrName = None,
-        new_col: ColumnOrName = None,
-        fn: SQLFunction = None,
-        kwargs: dict | None = None,
+        col: str,
+        new_col: str,
+        fn,
+        kwargs: dict,
     ):
 
-        super().__init__()
+        self.col = col
+        self.new_col = new_col
+        self.fn = fn
+        self.kwargs = kwargs
 
-    def _transform(self, X: DataFrame) -> DataFrame:
-        kwargs = {} if self._kwargs is None else self._kwargs
-        Xt = X.withColumn(self.new_col, self._fn(F.col(self._col), **kwargs))
+    def transform(self, X: DataFrame) -> DataFrame:
+        kwargs = {} if self.kwargs is None else self.kwargs
+        Xt = X.withColumn(self.new_col, self.fn(F.col(self.col), **kwargs))
         return Xt
 
 
 @registry("selector")
-class ColumnSelector(TransformerBaseClass):
+class ColumnSelector:
     """Custom Transformer wrapper class for DataFrame.select.
 
     Parameters
@@ -146,14 +147,14 @@ class ColumnSelector(TransformerBaseClass):
     """
 
     @keyword_only
-    def __init__(self, cols: list[ColumnOrName] = None):
-        super().__init__()
+    def __init__(self, cols: list[str] = None):
+        self.cols = cols
 
     def _transform(self, X: DataFrame) -> DataFrame:
-        return X.select(*self._cols)
+        return X.select(*self.cols)
 
 
-class MultiColumnTransformer(TransformerBaseClass):
+class MultiColumnTransformer:
     """Applies multiple transformations to a single column.
 
     Each transformation corresponds to a new column in the returned DataFrame.
@@ -168,30 +169,30 @@ class MultiColumnTransformer(TransformerBaseClass):
 
     """
 
-    @keyword_only
     def __init__(
         self,
-        col: ColumnOrName = None,
-        fns: list[SQLFunction] = None,
-        new_cols: list[ColumnOrName] = None,
+        col: str,
+        fns: list[Callable],
+        new_cols: list[str],
     ):
-        super().__init__()
+        self.col = col
+        self.fns = fns
+        self.new_cols = new_cols
 
-    def _transform(self, X: DataFrame) -> DataFrame:
+    def transform(self, X: DataFrame) -> DataFrame:
 
-        for fn, new_col in zip(self._fns, self._new_cols):
-            ct = ColumnTransformer(fn=fn, col=self._col, new_col=new_col)
+        for fn, new_col in zip(self.fns, self.new_cols):
+            ct = ColumnTransformer(fn=fn, col=self.col, new_col=new_col)
             X = ct.transform(X)
 
         return X
 
 
-class DropDuplicates(TransformerBaseClass):
+class DropDuplicates:
     """Custom Transformer wrapper class for DataFrame.dropDuplicates"""
 
-    @keyword_only
     def __init__(self, subset: list[str] | None = None):
-        super().__init__()
+        self.subset = subset
 
-    def _transform(self, X: DataFrame) -> DataFrame:
-        return X.dropDuplicates(self._subset)
+    def transform(self, X: DataFrame) -> DataFrame:
+        return X.dropDuplicates(self.subset)

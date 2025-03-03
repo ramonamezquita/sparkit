@@ -2,13 +2,25 @@ from pyspark.ml import Pipeline
 from pyspark.sql import DataFrame, SparkSession
 from tinytask.decorators import task
 
-from sparkit import models as M
-from sparkit import preprocessing
+from sparkit import extractors, preprocessing
+
+
+class Source:
+    name: str
+    filepath: str
+    format: str
+    options: dict
+
+
+class Target:
+    path: str
+    format: str
+    options: dict
 
 
 @task()
 def extract_many(
-    sources: list[M.Source], spark: SparkSession
+    sources: list[Source], spark: SparkSession
 ) -> dict[str, DataFrame]:
     """Extracts data from multiple sources.
 
@@ -61,7 +73,7 @@ def extract_many(
 
 
 @task()
-def load_many(data: dict[str, DataFrame], targets: dict[str, M.Target]) -> None:
+def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
     """Loads data into target destinations.
 
     Parameters
