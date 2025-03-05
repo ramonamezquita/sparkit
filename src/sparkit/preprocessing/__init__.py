@@ -1,7 +1,6 @@
-from pipeline import make_pipeline
-
 from sparkit.factory import create_factory
 from sparkit.preprocessing import column, date
+from sparkit.preprocessing.pipeline import make_pipeline
 
 registries = [column.registry, date.registry]
 

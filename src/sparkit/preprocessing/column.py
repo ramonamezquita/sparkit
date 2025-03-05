@@ -150,7 +150,7 @@ class ColumnSelector:
     def __init__(self, cols: list[str] = None):
         self.cols = cols
 
-    def _transform(self, X: DataFrame) -> DataFrame:
+    def transform(self, X: DataFrame) -> DataFrame:
         return X.select(*self.cols)
 
 

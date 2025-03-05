@@ -29,7 +29,7 @@ import argparse
 
 from pyspark.sql import SparkSession
 from tinytask.callbacks import LoggingCallback
-from tinytask.configfile import TasksConfigFile
+from tinytask.configfile import ConfigFile
 from tinytask.decorators import task
 
 from sparkit import objects as O
@@ -37,17 +37,18 @@ from sparkit import wh
 from sparkit.logging import create_default_logger
 from sparkit.tasks import etl
 
-JOB_NAME = "StarSchemaETL"
+JOB_NAME = "WarehouseETL"
 
 
 __logger__ = create_default_logger(name=JOB_NAME)
 
 
 @task(name="Extract", callbacks=[LoggingCallback(__logger__)])
-def extract(sources: list[etl.Source], spark: SparkSession) -> O.ObjectStore:
+def extract(sources: list[etl.Source]) -> O.ObjectStore:
     """Extracts data from multiple sources."""
-    os = O.ObjectStore()
+    spark = SparkSession.builder.appName(JOB_NAME).getOrCreate()
 
+    os = O.ObjectStore()
     extracted = etl.extract_many(sources, spark)
     os.add(key="extracted", value=extracted)
     return os
@@ -134,7 +135,7 @@ def run(config_path: str):
         The path to the YAML configuration file.
     """
 
-    config = TasksConfigFile.from_yaml(config_path)
+    config = ConfigFile.from_yaml(config_path)
     kwargs = config.get_task_args()
 
     chain = (
@@ -143,6 +144,10 @@ def run(config_path: str):
         | transform.s(kwargs=kwargs["transform"])
         | load.s(kwargs=kwargs["load"])
     )
+
+    chain().eval()
+
+    
 
 
 # ---------------------- CLI ---------------------- #
@@ -156,7 +161,7 @@ def create_parser() -> argparse.ArgumentParser:
     argparse.ArgumentParser
         The argument parser instance.
     """
-    parser = argparse.ArgumentParser(description="Star Schema ETL Pipeline.")
+    parser = argparse.ArgumentParser(description="Warehouse ETL.")
     parser.add_argument(
         "--config_path", "-C", help="Path to YAML configuration file."
     )

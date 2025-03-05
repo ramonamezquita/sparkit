@@ -70,4 +70,4 @@ class SparkParquetExtractor(SparkExtractor):
 
 
 #: Extractors factory.
-factory = create_factory()
+factory = create_factory([registry])

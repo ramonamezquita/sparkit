@@ -57,6 +57,7 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+*.csv
 
 # Checkpoints
 .ipynb_checkpoints
