@@ -1,9 +1,12 @@
+from typing import Any
+
 from sparkit.registry import Registry
 
 
 class Factory:
-    """
-    Factory class to instantiate objects dynamically from one or more registries.
+    """Factory class to instantiate objects dynamically from one or more registries.
+
+    Only allows to register objects of the same type.
     """
 
     def __init__(self):
@@ -12,7 +15,19 @@ class Factory:
     def add_registry(self, registry: Registry):
         self._registry.merge(registry)
 
-    def create(self, name: str, *args, **kwargs) -> object:
+    def create_many(self, objects: list[dict]) -> list[Any]:
+        many = []
+
+        for o in objects:
+            many.append(self.create(name=o["name"], **o["args"]))
+
+        return many
+
+    def get(self, name: str) -> object:
+        """Returns object from internal registry."""
+        return self._registry.get(name)
+
+    def create(self, name: str, *args, **kwargs) -> Any:
         """Creates an instance of the registered class by name.
 
         Parameters
@@ -36,16 +51,17 @@ class Factory:
         KeyError
             If the name is not found in any registry.
         """
-        for registry in self._registry:
-            cls = self._registry.get(name)
-            if cls:
-                return cls(*args, **kwargs)
+
+        cls = self._registry.get(name)
+        if cls:
+            return cls(*args, **kwargs)
         raise KeyError(f"Class with name '{name}' not found in any registry.")
 
 
 def create_factory(registries: list[Registry] = ()) -> Factory:
     factory = Factory()
-    for registry in registries:
-        factory.add_registry(registry)
+
+    for r in registries:
+        factory.add_registry(r)
 
     return factory

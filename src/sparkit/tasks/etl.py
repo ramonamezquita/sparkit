@@ -1,21 +1,34 @@
-from pyspark.ml import Pipeline
+from typing import TypedDict
+
 from pyspark.sql import DataFrame, SparkSession
 from tinytask.decorators import task
 
 from sparkit import extractors, preprocessing
 
 
-class Source:
+class Source(TypedDict):
+    """Represent a data source."""
+
     name: str
     filepath: str
     format: str
     options: dict
 
 
-class Target:
+class Target(TypedDict):
+    """Represents a data target."""
+
     path: str
     format: str
     options: dict
+    mode: str = "overwrite"
+
+
+class Transformer(TypedDict):
+    """Represents a transformer object"""
+
+    name: str
+    kwargs: dict
 
 
 @task()
@@ -43,30 +56,23 @@ def extract_many(
     dict[str, DataFrame]
         A dictionary where the keys are the source `key` values and the values
         are the corresponding extracted DataFrames.
-
-    Raises
-    ------
-    - KeyError
-        If no extractor is registered for a given format.
-    - Exception
-        If the extractor fails to load the data for any source.
     """
     extraction = {}
 
     for source in sources:
         try:
             kwargs = {
-                "name": source.format,
+                "name": source["format"],
                 "spark": spark,
-                "filepath": source.filepath,
-                "options": source.options,
+                "filepath": source["filepath"],
+                "options": source["options"],
             }
             extractor = extractors.factory.create(**kwargs)
-            extraction[source.key] = extractor.extract()
+            extraction[source["name"]] = extractor.extract()
         except Exception as e:
             raise RuntimeError(
-                f"Failed to extract data for source '{source.key}' "
-                f"with format '{source.format}': {e}"
+                f"Failed to extract data for source '{source['name']}' "
+                f"with format '{source['format']}': {e}"
             )
 
     return extraction
@@ -79,19 +85,10 @@ def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
     Parameters
     ----------
     data : dict[str, DataFrame]
-        A dictionary of validated data, where keys are table names,
-        and values are DataFrames.
+        A dictionary dataframes. Keys must match with `targets` keys.
 
     targets : dict[str, M.Target]
         A dictionary of target configurations.
-
-    Raises
-    ------
-    KeyError
-        If a table name in `targets` is missing from `tables`.
-
-    RuntimeError
-        If an error occurs while writing a table to its destination.
     """
     for key, target in targets.items():
         try:
@@ -103,43 +100,57 @@ def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
             )
 
         try:
-            sdf.write.parquet(target.path, mode="overwrite")
+            sdf.write.parquet(
+                target["path"], mode=target.get("mode", "overwrite")
+            )
         except Exception as e:
             raise RuntimeError(
-                f"Failed to write data '{key}' to '{target.path}': {e}"
+                f"Failed to write data '{key}' to '{target['path']}': {e}"
             ) from e
 
 
 @task()
-def transform_many(data: DataFrame, transformations: list[M.Generic]):
+def transform_many(
+    data: DataFrame, transformers: list[Transformer]
+) -> DataFrame:
+    """Applies given `transformers` sequentially to `data`.
 
-    stages = preprocessing.factory.create_many(transformations)
-    if not stages:
-        raise ValueError("No valid transformation stages created")
+    Transformers are applied in the given order.
 
-    pipeline = Pipeline(stages=stages)
-    model = pipeline.fit(data)
-    return model.transform(data)
+    Parameters
+    ----------
+    data : DataFrame
+        Input data.
+
+    transformer : list of Transformer
+        Transformers to apply.
+    """
+
+    transformers = preprocessing.factory.create_many(transformers)
+    if not transformers:
+        raise ValueError("No valid transformers created")
+
+    return preprocessing.make_pipeline(transformers)(data)
 
 
-@task()
-def validate_many(
-    data: DataFrame,
-    validations: list[M.Validation],
-    args_dispatcher: ArgsDispatcher,
-) -> None:
-
-    for v in validations:
-        try:
-
-            cls = validators.factory.get(v.name)
-            validator = args_dispatcher.init(cls, **v.args)
-            return validator.validate(data)
-
-        except Exception as exc:
-            clsname = validator.__class__.__name__
-            raise RuntimeError(
-                f"Validation failed in {clsname}:\n"
-                f"- DataFrame: {data}\n"
-                f"- Reason: {exc}"
-            )
+# @task()
+# def validate_many(
+#    data: DataFrame,
+#    validations: list,
+#    args_dispatcher:,
+# ) -> None:
+#
+#    for v in validations:
+#       try:
+#
+#            cls = validators.factory.get(v.name)
+#            validator = args_dispatcher.init(cls, **v.args)
+#            return validator.validate(data)
+#
+#        except Exception as exc:
+#            clsname = validator.__class__.__name__
+#            raise RuntimeError(
+#                f"Validation failed in {clsname}:\n"
+#                f"- DataFrame: {data}\n"
+#                f"- Reason: {exc}"
+#            )
