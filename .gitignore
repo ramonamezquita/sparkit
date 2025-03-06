@@ -3,6 +3,10 @@
 # Learn more about .gitignore:
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
+# Data dir
+data/
+
+# Dot env
 *.env
 
 # Dist
@@ -11,9 +15,7 @@ build/
 *.egg-info/
 
 # Python virtualenv
-.venv/
 venv/
-env/
 
 # Compiled Java class files
 *.class
