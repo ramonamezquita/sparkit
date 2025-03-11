@@ -66,7 +66,7 @@ def get_spark_filepath(file_name: str, check_exists: bool = True) -> str:
     check_exists : bool, optional
         If True (default), verifies that the file exists in the local filesystem.
         If False, returns the path without checking file existence.
-
+f
     Returns
     -------
     filepath: str

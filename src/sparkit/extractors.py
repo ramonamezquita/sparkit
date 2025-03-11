@@ -55,6 +55,8 @@ class SparkExtractor:
 
 @registry("csv")
 class SparkCSVExtractor(SparkExtractor):
+    """Wrapper for pyspark csv reader.
+    """
     def __init__(
         self, spark: SparkSession, filepath, options: dict | None = None
     ):
@@ -63,6 +65,8 @@ class SparkCSVExtractor(SparkExtractor):
 
 @registry("parquet")
 class SparkParquetExtractor(SparkExtractor):
+    """Wrapper for pyspark parquet reader.
+    """
     def __init__(
         self, spark: SparkSession, filepath: str, options: dict | None = None
     ):
