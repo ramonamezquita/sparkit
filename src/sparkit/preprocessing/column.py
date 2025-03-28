@@ -24,13 +24,15 @@ class ColumnRegexReplace:
         self.replacement = replacement
 
     def transform(self, X: DataFrame) -> DataFrame:
-        # fmt: off
+
         cols = [
-            F.regexp_replace(col, self.pattern, self.replacement).alias(col) 
-            if col in self.cols else X[col] 
+            (
+                F.regexp_replace(col, self.pattern, self.replacement).alias(col)
+                if col in self.cols
+                else X[col]
+            )
             for col in X.columns
         ]
-        # fmt: on
 
         return X.select(*cols)
 
@@ -49,8 +51,8 @@ class ColumnCast:
         return X.select(*cols)
 
 
-@registry("mapper")
-class ColumnMapper:
+@registry("rename")
+class ColumnRename:
     """Custom Transformer wrapper class for DataFrame.withColumnsRenamed.
 
     From Docs:

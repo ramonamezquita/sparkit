@@ -3,11 +3,16 @@ from pyspark.sql import functions as F
 from pyspark.sql.functions import udf
 from thefuzz import process
 
+from sparkit.registry import Registry
+
+registry = Registry("text_")
+
 
 def _ascii_ignore(x: str) -> str:
     return x.encode("ascii", "ignore").decode("ascii")
 
 
+@registry("standardizer")
 class TextStandardizer:
     def __init__(
         self, col: str, standard_values: list[str], threshold: int = 85
@@ -28,6 +33,7 @@ class TextStandardizer:
         return X.withColumn(self.col, best_match_udf(F.col(self.col)))
 
 
+@registry("normalizer")
 class TextNormalizer:
     def __init__(self, cols: list[str], initcap: bool = False):
         self.initcap = initcap

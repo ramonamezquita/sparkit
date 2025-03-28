@@ -13,13 +13,13 @@ This script includes a CLI entry point that allows it to be executed
 directly with Python or using `spark-submit`. For example,
 
 ```bash
-python starSchema.py --config_path /path/to/config.yaml
+python wh.py --config_path /path/to/config.yaml
 ```
 
 Or with `spark-submit`,
 
 ```bash
-spark-submit --py-files /path/to/sparkit.zip starSchema.py --config_path /path/to/config.yaml
+spark-submit --py-files /path/to/sparkit.zip wh.py --config_path /path/to/config.yaml
 ```
 """
 
