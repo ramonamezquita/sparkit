@@ -1,4 +1,5 @@
 from functools import reduce
+from logging import Logger
 from typing import Callable
 
 from pyspark.sql import DataFrame
@@ -7,10 +8,11 @@ from .transformer import Transformer
 
 
 def make_pipeline(
-    transformers: list[Transformer],
+    transformers: list[Transformer], logger: Logger | None = None
 ) -> Callable[[DataFrame], DataFrame]:
-    """Creates a pipeline that sequentially applies a list of Transformers to a
-     PySpark DataFrame.
+    """
+    Creates a pipeline that sequentially applies a list of Transformers to a
+    PySpark DataFrame.
 
     Parameters
     ----------
@@ -24,9 +26,14 @@ def make_pipeline(
         sequentially.
     """
 
+    def apply_transform(x: DataFrame, transformer: Transformer) -> DataFrame:
+        if logger:
+            logger.info(
+                f"Applying transformer `{transformer.__class__.__name__}`"
+            )
+        return transformer.transform(x)
+
     def pipeline(X) -> DataFrame:
-        return reduce(
-            lambda x, transformer: transformer.transform(x), transformers, X
-        )
+        return reduce(apply_transform, transformers, X)
 
     return pipeline

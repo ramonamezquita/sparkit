@@ -1,25 +1,24 @@
 """
-Configuration-oriented star schema ETL pipeline.
+Configuration-oriented warehouse build ETL.
 
-This script defines an ETL (Extract-Transform-Load) pipeline for 
-creating a star schema using PySpark. It leverages the `sparkit` 
-library for task management, configuration handling, and logging, 
-and it integrates PySpark's ML Pipeline API for preprocessing and 
-transformation. The whole process is: 
+This script defines an ETL (Extract-Transform-Load) pipeline for
+creating a star schema using PySpark. It leverages the `sparkit`
+library for task management, configuration handling, and logging.
+The whole process is:
 extract -> preprocess -> transform -> validate -> load.
 
 Command-Line Interface (CLI):
-This script includes a CLI entry point that allows it to be executed 
+This script includes a CLI entry point that allows it to be executed
 directly with Python or using `spark-submit`. For example,
 
 ```bash
-python wh.py --config_path /path/to/config.yaml
+python wh_etl.py --config_path /path/to/config.yaml
 ```
 
 Or with `spark-submit`,
 
 ```bash
-spark-submit --py-files /path/to/sparkit.zip wh.py --config_path /path/to/config.yaml
+spark-submit --py-files /path/to/sparkit.zip wh_etl.py --config_path /path/to/config
 ```
 """
 
@@ -63,7 +62,9 @@ def preprocess(
     preprocessed = {}
 
     for key, trans in transformations.items():
-        preprocessed[key] = etl.transform_many(extracted[key], trans)
+        preprocessed[key] = etl.transform_many(
+            extracted[key], trans, __logger__
+        )
 
     os.add(key="preprocessed", value=preprocessed)
 

@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import TypedDict
 
 from pyspark.sql import DataFrame, SparkSession
@@ -111,7 +112,9 @@ def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
 
 @task()
 def transform_many(
-    data: DataFrame, transformers: list[Transformer]
+    data: DataFrame,
+    transformers: list[Transformer],
+    logger: Logger | None = None,
 ) -> DataFrame:
     """Applies given `transformers` sequentially to `data`.
 
@@ -130,7 +133,7 @@ def transform_many(
     if not transformers:
         raise ValueError("No valid transformers created")
 
-    return preprocessing.make_pipeline(transformers)(data)
+    return preprocessing.make_pipeline(transformers, logger)(data)
 
 
 # @task()

@@ -55,7 +55,7 @@ def extract(sources: list[etl.Source]) -> O.ObjectStore:
 
     os = O.ObjectStore()
     extraction = etl.extract_many(sources, spark)
-    os.add(key="extracted", value=extraction)
+    os.add(key="extraction", value=extraction)
     return os
 
 
