@@ -6,29 +6,6 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StructField
 
 
-def check_fields(df: DataFrame, fields: list[StructField]) -> None:
-    """Checks that all expected StructFields are present in the DataFrame schema.
-
-    Args:
-        df (DataFrame): The Spark DataFrame to check.
-        fields (list[StructField]): A list of expected StructField objects.
-
-    Raises:
-        ValueError: If any expected field is missing or incorrect.
-    """
-    for f in fields:
-        if f not in df.schema:
-            raise ValueError(
-                f"Schema mismatch: {f} is missing or incorrect in DataFrame schema."
-            )
-
-
-def check_keys(d: dict, keys: list[str], alias: str = "") -> None:
-    for k in keys:
-        if k not in d:
-            raise ValueError(f"Missing key `{k}` in dict `{alias}` ")
-
-
 def assign_ids(data: DataFrame, id_col: str, start_id: int = 0) -> DataFrame:
     return data.withColumn(
         id_col, F.monotonically_increasing_id() + F.lit(start_id)
@@ -117,3 +94,20 @@ def get_spark_filepath(file_name: str, check_exists: bool = True) -> str:
             )
 
     return filepath
+
+
+def check_fields(df: DataFrame, fields: list[StructField]) -> None:
+    """Checks that all expected StructFields are present in the DataFrame schema.
+
+    Args:
+        df (DataFrame): The Spark DataFrame to check.
+        fields (list[StructField]): A list of expected StructField objects.
+
+    Raises:
+        ValueError: If any expected field is missing or incorrect.
+    """
+    for f in fields:
+        if f not in df.schema:
+            raise ValueError(
+                f"Schema mismatch: {f} is missing or incorrect in DataFrame schema."
+            )

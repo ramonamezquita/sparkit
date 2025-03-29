@@ -6,7 +6,7 @@ from typing import Callable
 def gen_default_name(fun: Callable) -> str:
     """Generates default name from the given function."""
     name = fun.__name__
-    module_name = fun.__module__
+    module_name = fun.__module__.split(".")[-1]
     return ".".join([module_name, name])
 
 

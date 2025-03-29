@@ -7,7 +7,7 @@ from sparkit.registry import Registry
 
 from .column import MultiColumnTransformer
 
-registry = Registry(prefix="date_")
+registry = Registry()
 
 
 def _get_datetime_func(name: str) -> Callable:
@@ -35,8 +35,8 @@ def _get_datetime_func(name: str) -> Callable:
     return name_to_fn[name]
 
 
-@registry(name="normalizer")
-class DateNormalizer:
+@registry()
+class Normalize:
     """Custom Transformer wrapper class for functions.date_format().
 
     From Docs:
@@ -61,7 +61,8 @@ class DateNormalizer:
         return X.withColumn(self.col, date_col)
 
 
-class DatetimeExtractor:
+@registry()
+class Extract:
     """Extracts datetime attributes (e.g. "dayofweek") from date column.
 
     Parameters

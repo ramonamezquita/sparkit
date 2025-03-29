@@ -5,15 +5,15 @@ from thefuzz import process
 
 from sparkit.registry import Registry
 
-registry = Registry("text_")
+registry = Registry()
 
 
 def _ascii_ignore(x: str) -> str:
     return x.encode("ascii", "ignore").decode("ascii")
 
 
-@registry("standardizer")
-class TextStandardizer:
+@registry()
+class Standardize:
     def __init__(
         self, col: str, standard_values: list[str], threshold: int = 85
     ):
@@ -33,8 +33,8 @@ class TextStandardizer:
         return X.withColumn(self.col, best_match_udf(F.col(self.col)))
 
 
-@registry("normalizer")
-class TextNormalizer:
+@registry()
+class Normalize:
     def __init__(self, cols: list[str], initcap: bool = False):
         self.initcap = initcap
         self.cols = cols
