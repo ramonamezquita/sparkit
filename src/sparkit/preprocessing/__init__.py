@@ -1,11 +1,10 @@
 from sparkit.factory import create_factory
-from sparkit.preprocessing import column, date, df, text
-from sparkit.preprocessing.pipeline import make_pipeline
+from sparkit.preprocessing import column, dataframe, date, text
 
 registries = [
     column.registry,
     date.registry,
-    df.registry,
+    dataframe.registry,
     text.registry,
 ]
 

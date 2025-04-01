@@ -5,6 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from tinytask.decorators import task
 
 from sparkit import extractors, preprocessing
+from sparkit.pipeline import make_pipeline
 
 
 class Source(TypedDict):
@@ -133,7 +134,7 @@ def transform_many(
     if not transformers:
         raise ValueError("No valid transformers created")
 
-    return preprocessing.make_pipeline(transformers, logger)(data)
+    return make_pipeline(transformers, logger)(data)
 
 
 # @task()

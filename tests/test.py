@@ -76,7 +76,7 @@ def _create_admin2_map(
         admin2_tb.withColumn("rank", F.row_number().over(window))
         .filter(F.col("rank") == 1)
         .drop("rank", "lev")
-        .select("admin1name", "admin2name", "name")
+        .select("admin1name", "admin2name", F.col("name").alias("stdname"))
     )
 
     return admin2_map
@@ -115,3 +115,4 @@ input_tb = (
 
 # ADM2 Standardization
 admin2_map = _create_admin2_map(standard_tb, admin1_tb, input_tb)
+#admin2_map.write.csv("/workspace/admin2map.csv")

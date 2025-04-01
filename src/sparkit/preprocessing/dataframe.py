@@ -37,7 +37,7 @@ class DropDuplicates:
 
 
 @registry()
-class HierarchichalReplace:
+class HierarchicalReplace:
     """Replace values in a column based on hierarchical conditions.
 
     Parameters

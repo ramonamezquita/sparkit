@@ -4,7 +4,7 @@ from typing import Callable
 
 from pyspark.sql import DataFrame
 
-from .transformer import Transformer
+from sparkit.preprocessing.transformer import Transformer
 
 
 def make_pipeline(

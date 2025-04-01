@@ -5,7 +5,7 @@ from typing import TypedDict
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from sparkit.utils import assign_ids, deduplicate
+from sparkit.utils.spark import assign_ids, deduplicate
 
 
 class Metadata(TypedDict):
