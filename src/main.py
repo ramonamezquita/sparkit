@@ -3,7 +3,7 @@ import importlib
 
 _CLI_DOCSTRING = """
 Entrypoint for running PySpark jobs.
-Ø
+
 Job arguments are given using the `--job-args` option as
 a list of space-separated key=value pairs. Example:
 
