@@ -3,6 +3,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField
 from pyspark.sql.window import Window
 from tinytask.callbacks import LoggingCallback
+from tinytask.configfile import ConfigFile
 from tinytask.decorators import task
 
 from sparkit import objects as O
@@ -136,6 +137,9 @@ def transform(os: O.ObjectStore) -> DataFrame:
 
     # ADM2 Standardization
     admin2_map = _create_admin2_map(standard_tb, output_tb)
+    if admin2_map.isEmpty():
+        raise ValueError("Admin2 mapping resulted in an empty table.")
+
     output_tb = (
         output_tb.join(admin2_map, ["admin1name", "admin2name"])
         .drop("admin2name")
@@ -145,15 +149,42 @@ def transform(os: O.ObjectStore) -> DataFrame:
     return output_tb
 
 
-@task()
-def load(os, output_uri: str) -> DataFrame:
-    pass
+@task(name="Load", callbacks=[LoggingCallback(__logger__)])
+def load(to_load: DataFrame, path: str, mode: str = "overwrite") -> None:
+    """Loads validated data into target destinations.
+
+    Parameters
+    ----------
+    to_load : DataFrame
+        DataFrame to load.
+
+    dest : str
+        Destination path
+    """
+    try:
+        to_load.write.parquet(path, mode=mode)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to write output table to '{path}'. Reason: {exc}"
+        ) from exc
 
 
-def run(
-    input_uri: str,
-    standard_uri: str,
-    output_uri: str = "output.parquet",
-):
-    """Standardizes locations by performing fuzzy matching."""
-    pass
+def run(config_path: str):
+    """Executes the ETL pipeline based on the provided configuration.
+
+    Parameters
+    ----------
+    config_path : str
+        The path to the YAML configuration file.
+    """
+
+    config = ConfigFile.from_yaml(config_path)
+    kwargs = config.get_task_args()
+
+    chain = (
+        extract.s(kwargs=kwargs["extract"])
+        | transform.s(kwargs=kwargs["transform"])
+        | load.s(kwargs=kwargs["load"])
+    )
+
+    chain().eval()

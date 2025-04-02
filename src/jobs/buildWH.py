@@ -1,5 +1,5 @@
 """
-Configuration-oriented warehouse build ETL.
+Configuration-oriented warehouse builder ETL.
 
 This script defines an ETL (Extract-Transform-Load) pipeline for
 creating a star schema using PySpark. It leverages the `sparkit`
@@ -36,7 +36,7 @@ from sparkit import wh
 from sparkit.logging import create_default_logger
 from sparkit.tasks import etl
 
-JOB_NAME = "WarehouseETL"
+JOB_NAME = "BuildWarehouseETL"
 
 
 __logger__ = create_default_logger(name=JOB_NAME)
