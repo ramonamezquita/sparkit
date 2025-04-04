@@ -150,7 +150,9 @@ def transform(os: O.ObjectStore) -> DataFrame:
 
 
 @task(name="Load", callbacks=[LoggingCallback(__logger__)])
-def load(to_load: DataFrame, path: str, mode: str = "overwrite") -> None:
+def load(
+    to_load: DataFrame, path: str, mode: str = "overwrite", **kwargs
+) -> None:
     """Loads validated data into target destinations.
 
     Parameters
@@ -160,9 +162,12 @@ def load(to_load: DataFrame, path: str, mode: str = "overwrite") -> None:
 
     dest : str
         Destination path
+
+    **kwargs : Key word args
+        Extra key word args for DataFrame.write.parquet.
     """
     try:
-        to_load.write.parquet(path, mode=mode)
+        to_load.write.parquet(path, mode=mode, **kwargs)
     except Exception as exc:
         raise RuntimeError(
             f"Failed to write output table to '{path}'. Reason: {exc}"
@@ -183,7 +188,7 @@ def run(config_path: str):
 
     chain = (
         extract.s(kwargs=kwargs["extract"])
-        | transform.s(kwargs=kwargs["transform"])
+        | transform.s()
         | load.s(kwargs=kwargs["load"])
     )
 

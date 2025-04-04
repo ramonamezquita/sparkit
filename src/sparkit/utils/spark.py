@@ -6,17 +6,78 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StructField
 
 
+def count_nan(data: DataFrame, subset: list[str] | None = None) -> DataFrame:
+    """Counts NaN or null values in specified columns of a DataFrame.
+
+    Parameters
+    ----------
+    data : DataFrame
+        The input Spark DataFrame.
+
+    subset : list[str] | None
+        List of column names to check for NaNs. If None, all columns are checked.
+
+    Returns
+    -------
+    DataFrame
+        A single-row DataFrame with counts of NaNs/nulls per column.
+    """
+    if subset is None:
+        subset = data.columns
+
+    return data.select(
+        [
+            F.count(F.when(F.isnan(c) | F.col(c).isNull(), c)).alias(c)
+            for c in subset
+        ]
+    )
+
+
 def assign_ids(data: DataFrame, id_col: str, start_id: int = 0) -> DataFrame:
+    """Assigns unique IDs to each row in a DataFrame, starting from a given value.
+
+    Parameters
+    ----------
+    data : DataFrame
+        The input Spark DataFrame.
+
+    id_col : str
+        Name of the column to store generated IDs.
+
+    start_id : int
+        Starting value for ID assignment.
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with an additional column containing unique IDs.
+    """
     return data.withColumn(
         id_col, F.monotonically_increasing_id() + F.lit(start_id)
     )
 
 
 def deduplicate(data: DataFrame, columns: list[str]) -> DataFrame:
+    """Removes duplicate rows based on a subset of columns.
+
+    Parameters
+    ----------
+    data : DataFrame
+        The input Spark DataFrame.
+
+    columns : list[str]
+        List of column names used to identify duplicates.
+
+    Returns
+    -------
+    DataFrame
+        DataFrame containing only distinct rows based on the specified columns.
+    """
     return data.select(*columns).distinct()
 
 
 def union(data: DataFrame, other: DataFrame) -> DataFrame:
+    """Union between two dataframes."""
     return data.unionByName(other)
 
 
@@ -33,53 +94,27 @@ def shape(data: DataFrame) -> tuple[int, int]:
     Returns
     -------
     tuple[int, int]
-        A tuple containing two integers:
-        - First element: Number of rows in the DataFrame (obtained using df.count())
-        - Second element: Number of columns in the DataFrame (obtained using len(df.columns))
-
-    Examples
-    --------
-    >>> from pyspark.sql import SparkSession
-    >>> spark = SparkSession.builder.getOrCreate()
-    >>> data = [("Alice", 25), ("Bob", 30)]
-    >>> df = spark.createDataFrame(data, ["name", "age"])
-    >>> shape(df)
-    (2, 2)
-
-    Notes
-    -----
-    - The row count is computed using df.count(), which triggers an action and may be
-      computationally expensive for large DataFrames.
-    - Unlike pandas' shape property, this is implemented as a function.
     """
     return (data.count(), len(data.columns))
 
 
 def get_spark_filepath(file_name: str, check_exists: bool = True) -> str:
-    """Retrieves the local filesystem path for a file that was added to
-        Spark's file distribution system.
+    """Retrieves path for a file that was added to Spark's file system.
 
-        Parameters
-        ----------
-        file_name : str
-            Name of the file to locate in Spark's distributed cache.
+    Parameters
+    ----------
+    file_name : str
+        Name of the file to locate in Spark's distributed cache.
 
-        check_exists : bool, optional
-            If True (default), verifies that the file exists in the local filesystem.
-            If False, returns the path without checking file existence.
-    f
-        Returns
-        -------
-        filepath: str
-            Absolute path to the file in the local filesystem where Spark has cached it.
+    check_exists : bool, optional
+        If True (default), verifies that the file exists in the local filesystem.
+        If False, returns the path without checking file existence.
 
-
-        Examples
-        --------
-        >>> # Assuming 'data.csv' was included in spark-submit --files
-        >>> filepath = get_spark_filepath('data.csv')
-        >>> with open(filepath, 'r') as f:
-        ...     data = f.read()
+    Returns
+    -------
+    filepath: str
+        Absolute path to the file in the local filesystem where Spark has 
+        cached it.
     """
 
     filepath = SparkFiles.get(file_name)

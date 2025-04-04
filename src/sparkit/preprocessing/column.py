@@ -64,9 +64,16 @@ class Cast:
         self.dtypes = dtypes
 
     def transform(self, X: DataFrame) -> DataFrame:
-        all_dtypes = {col: dtype for col, dtype in X.dtypes}
-        all_dtypes.update(self.dtypes)
-        cols = [F.col(col).cast(dtype) for col, dtype in all_dtypes.items()]
+
+        cols = [
+            (
+                F.col(col).cast(self.dtypes[col])
+                if col in self.dtypes
+                else F.col(col)
+            )
+            for col in X.columns
+        ]
+
         return X.select(*cols)
 
 

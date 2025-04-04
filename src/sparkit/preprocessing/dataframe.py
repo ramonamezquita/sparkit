@@ -37,6 +37,24 @@ class DropDuplicates:
 
 
 @registry()
+class DropNa:
+    """Custom Transformer wrapper class for DataFrame.dropna"""
+
+    def __init__(
+        self,
+        how: str = "any",
+        thresh: int | None = None,
+        subset: str | list[str] | None = None,
+    ):
+        self.how = how
+        self.thresh = thresh
+        self.subset = subset
+
+    def transform(self, X: DataFrame) -> DataFrame:
+        return X.dropna(self.how, self.thresh, self.subset)
+
+
+@registry()
 class HierarchicalReplace:
     """Replace values in a column based on hierarchical conditions.
 

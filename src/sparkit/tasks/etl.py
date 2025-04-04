@@ -67,7 +67,7 @@ def extract_many(
                 "name": source["format"],
                 "spark": spark,
                 "filepath": source["filepath"],
-                "options": source["options"],
+                "options": source.get("options"),
             }
             extractor = extractors.factory.create(**kwargs)
             extraction[source["name"]] = extractor.extract()
