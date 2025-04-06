@@ -3,11 +3,9 @@ from __future__ import annotations
 from typing import Callable
 
 
-def gen_default_name(fun: Callable) -> str:
+def gen_default_name(cls) -> str:
     """Generates default name from the given function."""
-    name = fun.__name__
-    module_name = fun.__module__.split(".")[-1]
-    return ".".join([module_name, name])
+    return cls.__name__
 
 
 class Registry(dict):
