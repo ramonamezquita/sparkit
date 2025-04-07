@@ -19,7 +19,7 @@ class Factory:
         many = []
 
         for o in objects:
-            many.append(self.create(name=o["name"], **o["args"]))
+            many.append(self.create(name=o["name"], **o["initargs"]))
 
         return many
 
