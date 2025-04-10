@@ -1,23 +1,12 @@
-from logging import Logger
 from typing import TypedDict
 
 from pyspark.sql import DataFrame, SparkSession
 from tinytask.decorators import task
 
-from sparkit import extractors, preprocessing
-from sparkit.pipeline import make_pipeline
+from sparkit import sources as ss
 
 
-class Source(TypedDict):
-    """Represent a data source."""
-
-    name: str
-    filepath: str
-    format: str
-    options: dict
-
-
-class Target(TypedDict):
+class SerializedTarget(TypedDict):
     """Represents a data target."""
 
     path: str
@@ -26,16 +15,9 @@ class Target(TypedDict):
     mode: str = "overwrite"
 
 
-class Transformer(TypedDict):
-    """Represents a transformer object"""
-
-    name: str
-    kwargs: dict
-
-
 @task()
 def extract_many(
-    sources: list[Source], spark: SparkSession
+    sources: list[ss.SerializedSource], spark: SparkSession
 ) -> dict[str, DataFrame]:
     """Extracts data from multiple sources.
 
@@ -46,9 +28,8 @@ def extract_many(
 
     Parameters
     ----------
-    sources : list[Source]
-        A list of source definitions, where each source is a dictionary with
-        the following keys.
+    sources : list[sources.SerializedSource]
+        A list of source definitions.
 
     spark : SparkSession
         The active SparkSession used for reading data.
@@ -59,29 +40,32 @@ def extract_many(
         A dictionary where the keys are the source `key` values and the values
         are the corresponding extracted DataFrames.
     """
-    extraction = {}
+    sourced = {}
 
     for source in sources:
         try:
+
             kwargs = {
                 "name": source["format"],
                 "spark": spark,
                 "filepath": source["filepath"],
                 "options": source.get("options"),
             }
-            extractor = extractors.factory.create(**kwargs)
-            extraction[source["name"]] = extractor.extract()
+            source_instance: ss.Source = ss.factory.create(**kwargs)
+            sourced[source["name"]] = source_instance.extract()
         except Exception as e:
             raise RuntimeError(
                 f"Failed to extract data for source '{source['name']}' "
                 f"with format '{source['format']}': {e}"
             )
 
-    return extraction
+    return sourced
 
 
 @task()
-def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
+def load_many(
+    data: dict[str, DataFrame], targets: list[SerializedTarget]
+) -> None:
     """Loads data into target destinations.
 
     Parameters
@@ -92,12 +76,14 @@ def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
     targets : dict[str, M.Target]
         A dictionary of target configurations.
     """
-    for key, target in targets.items():
+    for target in targets:
+    
         try:
-            sdf = data[key]
+            name = target["name"]
+            sdf = data[name]
         except KeyError:
             raise KeyError(
-                f"Missing dataset: No data found for '{key}'. "
+                f"Missing dataset: No data found for '{name}'. "
                 f"Available datasets are: {list(data)}."
             )
 
@@ -107,34 +93,8 @@ def load_many(data: dict[str, DataFrame], targets: dict[str, Target]) -> None:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Failed to write data '{key}' to '{target['path']}': {e}"
+                f"Failed to write data '{name}' to '{target['path']}': {e}"
             ) from e
-
-
-@task()
-def transform_many(
-    data: DataFrame,
-    transformers: list[Transformer],
-    logger: Logger | None = None,
-) -> DataFrame:
-    """Applies given `transformers` sequentially to `data`.
-
-    Transformers are applied in the given order.
-
-    Parameters
-    ----------
-    data : DataFrame
-        Input data.
-
-    transformer : list of Transformer
-        Transformers to apply.
-    """
-
-    transformers = preprocessing.factory.create_many(transformers)
-    if not transformers:
-        raise ValueError("No valid transformers created")
-
-    return make_pipeline(transformers, logger)(data)
 
 
 # @task()

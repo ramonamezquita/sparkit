@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, TypedDict
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.readwriter import DataFrameReader
@@ -6,27 +6,36 @@ from pyspark.sql.readwriter import DataFrameReader
 from sparkit.factory import create_factory
 from sparkit.registry import Registry
 
+
+class SerializedSource(TypedDict):
+    """Represent a data source."""
+
+    name: str
+    filepath: str
+    format: str
+    options: dict
+
+
 registry = Registry()
 
 
-class Extractor(Protocol):
-    """Extractor interface.
+class Source(Protocol):
+    """Source interface.
 
-
-    Extracts are objects implementing the :class:`Extractor` interface.
+    Sources are objects implementing the :class:`Source` interface/protocol.
     That is, method :meth:`extract` must be implemented. For example,
     the following class is a convenience wrapper around pandas to allows
-    to satisfy the :class:`Extractor` interface:
+    to satisfy the :class:`Source` interface:
 
     ```
     import pandas as pd
 
-    class PandasSQLExtractor:
+    class PandasSource:
         def __init__(self, sql, con):
             self.sql=sql
             self.con=con
 
-        def extract(self) -> DataFrame
+        def extract(self) -> DataFrame:
             return pd.read_sql(sql=sql, con=con)
     ```
     """
@@ -36,7 +45,7 @@ class Extractor(Protocol):
         ...
 
 
-class _SparkExtractor:
+class SparkSource:
 
     def __init__(
         self,
@@ -54,7 +63,7 @@ class _SparkExtractor:
 
 
 @registry("csv")
-class CSVExtractor(_SparkExtractor):
+class CSVSource(SparkSource):
     """Wrapper for pyspark csv reader."""
 
     def __init__(
@@ -64,7 +73,7 @@ class CSVExtractor(_SparkExtractor):
 
 
 @registry("parquet")
-class ParquetExtractor(_SparkExtractor):
+class ParquetSource(SparkSource):
     """Wrapper for pyspark parquet reader."""
 
     def __init__(

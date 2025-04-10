@@ -15,14 +15,6 @@ class Factory:
     def add_registry(self, registry: Registry):
         self._registry.merge(registry)
 
-    def create_many(self, objects: list[dict]) -> list[Any]:
-        many = []
-
-        for o in objects:
-            many.append(self.create(name=o["name"], **o["initargs"]))
-
-        return many
-
     def get(self, name: str) -> object:
         """Returns object from internal registry."""
         return self._registry.get(name)

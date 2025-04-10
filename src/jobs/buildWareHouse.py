@@ -32,42 +32,36 @@ from tinytask.configfile import ConfigFile
 from tinytask.decorators import task
 
 from sparkit import objects as O
-from sparkit import wh
+from sparkit import tasks, wh
+from sparkit.apply import SerializedApplier
 from sparkit.logging import create_default_logger
+from sparkit.sources import SerializedSource
 from sparkit.tasks import etl
 
-JOB_NAME = "BuildWarehouseETL"
+JOB_NAME = "BuildWareHouseETL"
 
 
 __logger__ = create_default_logger(name=JOB_NAME)
 
 
 @task(name="Extract", callbacks=[LoggingCallback(__logger__)])
-def extract(sources: list[etl.Source]) -> O.ObjectStore:
+def extract(sources: list[SerializedSource]) -> O.ObjectStore:
     """Extracts data from multiple sources."""
     spark = SparkSession.builder.appName(JOB_NAME).getOrCreate()
-
     os = O.ObjectStore()
-    extracted = etl.extract_many(sources, spark)
-    os.add(key="extracted", value=extracted)
+    sourced = tasks.etl.extract_many(sources, spark)
+    os.add(key="sourced", value=sourced)
     return os
 
 
-@task(name="Preprocess", callbacks=[LoggingCallback(__logger__)])
-def preprocess(
-    os: O.ObjectStore, transformations: dict[str, list[etl.Transformer]]
+@task(name="Apply", callbacks=[LoggingCallback(__logger__)])
+def apply(
+    os: O.ObjectStore, appliers: list[SerializedApplier]
 ) -> O.ObjectStore:
-    """Preprocess extracted data."""
-    extracted = os.get("extracted")
-    preprocessed = {}
-
-    for key, trans in transformations.items():
-        preprocessed[key] = etl.transform_many(
-            extracted[key], trans, __logger__
-        )
-
-    os.add(key="preprocessed", value=preprocessed)
-
+    """Preprocess extracted data using apply functions."""
+    applied = os.get("sourced")
+    applied["raw"] = tasks.apply.apply_many(applied["raw"], appliers)
+    os.add(key="applied", value=applied)
     return os
 
 
@@ -77,13 +71,13 @@ def transform(
     metadata: list[wh.Metadata],
 ) -> O.ObjectStore:
     """Transforms preprocessed data into a star schema."""
-    data = os.get("preprocessed").pop("raw")
+    raw = os.get("applied").pop("raw")
 
     # Build warehouse.
     # Data is transformed into a fact table containing foreign
     # keys to dimension tables. Fact and dimension tables defininition
     # are given through the `metadata` parameter.
-    transformed = wh.build(metadata, data)
+    transformed = wh.build(metadata, raw)
     os.add(key="transformed", value=transformed)
 
     return os
@@ -141,7 +135,7 @@ def run(config_path: str):
 
     chain = (
         extract.s(kwargs=kwargs["extract"])
-        | preprocess.s(kwargs=kwargs["preprocess"])
+        | apply.s(kwargs=kwargs["apply"])
         | transform.s(kwargs=kwargs["transform"])
         | load.s(kwargs=kwargs["load"])
     )
