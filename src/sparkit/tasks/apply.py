@@ -7,7 +7,7 @@ from sparkit import apply
 @task()
 def apply_many(
     data: DataFrame,
-    appliers: list[apply.SerializedApplier],
+    serialized_appliers: list[apply.SerializedApplier],
 ) -> DataFrame:
     """Applies given `appliers` sequentially to `data`.
 
@@ -21,10 +21,10 @@ def apply_many(
     appliers : list of SerializedApplier
         Functions to apply.
     """
-    appliers = map(apply.to_factory_args, appliers)
+    serialized_appliers = map(apply.to_factory_args, serialized_appliers)
 
     applier_instances = []
-    for applier in appliers:
+    for applier in serialized_appliers:
         applier = apply.factory.create(applier["name"], **applier["args"])
         applier_instances.append(applier)
 

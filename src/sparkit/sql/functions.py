@@ -6,9 +6,13 @@ from sparkit.utils.python import unnest
 
 
 def apply_dataframe_method(
-    X: DataFrame, method_name: str, *args, **kwargs
+    X: DataFrame,
+    method_name: str,
+    method_args: tuple = (),
+    method_kwargs: dict | None = None,
 ) -> DataFrame:
 
+    method_kwargs = method_kwargs or {}
     method = getattr(X, method_name)
 
     if method is None:
@@ -16,13 +20,16 @@ def apply_dataframe_method(
             f"PySpark DataFrame method `{method_name}` does not exist."
         )
 
-    return method(*args, **kwargs)
+    return method(*method_args, **method_kwargs)
 
 
 def apply_column_method(
-    col: Column, method_name: str, *args, **kwargs
+    col: Column,
+    method_name: str,
+    method_args: tuple = (),
+    method_kwargs: dict | None = None,
 ) -> Column:
-
+    method_kwargs = method_kwargs or {}
     method = getattr(col, method_name)
 
     if not hasattr(Column, method_name):
@@ -30,11 +37,14 @@ def apply_column_method(
             f"PySpark Column method `{method_name}` does not exist."
         )
 
-    return method(*args, **kwargs)
+    return method(*method_args, **method_kwargs)
 
 
 def hierarchical_replace(
-    X: DataFrame, values: dict, hierarchical_cols: list[str], replace_col: str
+    X: DataFrame,
+    values: dict,
+    hierarchical_cols: list[str],
+    replace_col: str,
 ) -> DataFrame:
     spark = X.sparkSession
     colnames = hierarchical_cols + ["new_value"]

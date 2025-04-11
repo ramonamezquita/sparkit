@@ -1,0 +1,108 @@
+# Configuration file for `buildWareHouse.py`.
+#
+# This YAML configuration defines the arguments and sequence of tasks to be
+# executed by the `buildWareHouse.py` script.
+#
+#
+# Tasks
+# -----
+# Each task is a dictionary with the following structure:
+# - task_name (str): Name of the task to be executed.
+# - task_args: (dict) Arguments required for the specific task.
+
+args:
+  client: iowa
+  region: eunorth1
+  env: local
+
+tasks:
+  # Task `extract` takes `sources` as argument.
+  # `sources` is a list of datasources.
+  - task_name: extract
+    task_args:
+      sources:
+        - name: raw
+          format: csv
+          filepath: s3a://${client}-raw-${region}-${env}/
+          options:
+            header: true
+
+  # Task `apply` takes `appliers` as argument.
+  # `appliers` is a mapping from data identifier (str, e.g., "raw") to a list of `apply` objects.
+  # An `apply` object specified the function (`func`) to apply and its arguments (`kwargs`).
+  # The function `func` can be applied on a dataframe or a set of columns.
+  - task_name: apply
+    task_args:
+      appliers:
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "dropna"
+            method_kwargs: { "how": "any" }
+
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "drop"
+            method_args:
+              ["State Bottle Retail", "Volume Sold (Liters)", "Category"]
+
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "withColumnsRenamed"
+            method_kwargs:
+              colsMap:
+                "Date": "date"
+                "Store Number": "storenumber"
+                "City": "admin3name"
+                "Zip Code": "zipcode"
+                "Store Location": "location"
+                "Category": "category"
+                "Item Number": "sku"
+                "State Bottle Cost": "cost"
+                "Bottles Sold": "units"
+                "Sale (Dollars)": "money"
+                "County": admin2name"
+
+        - "on": "columns"
+          func: "to_date"
+          cols: ["Date"]
+          kwargs:
+            format: "dd/MM/yyyy"
+
+        - "on": "columns"
+          module: "sparkit"
+          func: "apply_column_method"
+          cols: ["cost", "units", "money"]
+          kwargs:
+            method_name: "cast"
+            method_kwargs: { "dataType": "float" }
+
+        - "on": "columns"
+          func: "initcap"
+          cols: ["admin2name", "admin3name"]
+
+  # Task `transform` takes `metadata` as argument.
+  # `metadata` is a list of dimension tables.
+  - task_name: transform
+    task_args:
+      metadata:
+        - name: dim_stores
+          type: dimension
+          merge_on: storenumber
+          id_cols:
+            - storenumber
+            - admin2name
+            - admin3name
+            - zipcode
+            - location
+
+        - name: dim_products
+          type: dimension
+          merge_on: sku
+          id_cols:
+            - sku

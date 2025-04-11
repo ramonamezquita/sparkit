@@ -1,0 +1,22 @@
+args:
+  client: coppel
+  region: eunorth1
+  env: local
+
+tasks:
+  extract:
+    args:
+      sources:
+        - name: "input_tb"
+          filepath: "s3a://coppel-staging-eunorth1-local/dim_stores"
+          format: "parquet"
+        
+        - name: "standard_tb"
+          filepath: "/home/jovyan/data/geonames/"
+          format: "parquet"
+
+  load:
+    args:
+      path: "s3a://coppel-analytics-eunorth1-local/dim_stores"
+
+

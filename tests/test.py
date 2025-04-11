@@ -14,8 +14,7 @@ sc._jsc.hadoopConfiguration().set("fs.s3a.endpoint", "http://minio:9000")
 sc._jsc.hadoopConfiguration().set("fs.s3a.path.style.access", "true")
 sc._jsc.hadoopConfiguration().set("fs.s3a.connection.ssl.enabled", "false")
 
-config_path = "/home/jovyan/config/buildWH2"
-
+config_path = "/workspace/config/iowa-buildWareHouse"
 config = ConfigFile.from_yaml(config_path)
 
 kwargs = config.get_task_args()

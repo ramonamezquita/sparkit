@@ -1,0 +1,242 @@
+# Configuration file for `buildWareHouse.py`.
+#
+# This YAML configuration defines the arguments and sequence of tasks to be 
+# executed by the `buildWareHouse.py` script.
+#
+#
+# Tasks
+# -----
+# Each task is a dictionary with the following structure:
+# - task_name (str): Name of the task to be executed.
+# - task_args: (dict) Arguments required for the specific task.
+
+args:
+  client: coppel
+  region: eunorth1
+  env: local
+
+tasks:
+  # Task `extract` takes `sources` as argument.
+  # `sources` is a list of datasources.
+  - task_name: extract
+    task_args:
+      sources:
+        - name: raw
+          format: csv
+          filepath: s3a://${client}-raw-${region}-${env}/
+          options:
+            header: true
+  
+  # Task `apply` takes `appliers` as argument. 
+  # `appliers` is a mapping from data identifier (str, e.g., "raw") to a list of `apply` objects.
+  # An `apply` object specified the function (`func`) to apply and its arguments (`kwargs`).
+  # The function `func` can be applied on a dataframe or a set of columns.  
+  - task_name: apply
+    task_args:
+      appliers:
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "dropna"
+            how: "any"
+          
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "withColumnsRenamed"
+            colsMap:
+              "Estado": "admin1name"
+              "Ciudad": "admin2name"
+              "Tienda": "store"
+              "Código": "sku"
+              "Día": "date"
+              "Pesos": "money"
+              "Unidades": "units"
+              "$ Costo Venta": "cost"
+
+        - "on": "columns"
+          func: "to_date"
+          cols: ["date"]
+          kwargs:
+           format: "dd\\MM\\yyyy"
+
+        - "on": "columns"
+          func: "regexp_replace"
+          cols: ["money", "units", "cost"]
+          kwargs: 
+            "pattern": "\\,"
+            "replacement": ""
+
+        - "on": "columns"
+          module: "sparkit"
+          func: "apply_column_method"
+          cols: ["money", "units", "cost"]
+          kwargs:
+            method_name: "cast"
+            dataType: "float"
+
+        - "on": "columns"
+          func: "initcap"
+          cols: ["admin1name", "admin2name"]
+
+        - "on": "dataframe"
+          func: "apply_dataframe_method"
+          module: "sparkit"
+          kwargs:
+            method_name: "replace"
+            subset: ["admin1name"]
+            to_replace:
+              "Baja California Norte": "Baja California"
+              "Coahuila": "Coahuila de Zaragoza"
+              "Distrito Federal": "Ciudad de México"
+              "Estado De Mexico": "Mexico"
+              "Michoacan": "Michoacán de Ocampo"
+              "Veracruz": "Veracruz-Llave"
+
+        - "on": "dataframe"
+          func: "hierarchical_replace"
+          module: "sparkit"
+          kwargs:
+            hierarchical_cols: ["admin1name", "admin2name"]
+            replace_col: "admin2name"
+            values:
+              "Ciudad de México":
+                "Cuajimalpa": "Cuajimalpa de Morelos"
+              
+              "Aguascalientes":
+                "Pabellon": "Pabellón de Arteaga"
+              
+              "Baja California":
+                "Rosarito": "Playas de Rosarito"
+                "Gpe Victoria": "Mexicali"
+              
+              "Baja California Sur":
+                "Cabo San Lucas": "Los Cabos"
+                "Cd Constitucion": "Comondú"
+                "Gro Negro": "Mulegé"
+                "Sta Rosalia": "Mulegé"
+                "Villa Alberto Alvara": "Mulegé"
+              
+              "Chiapas":
+                "Comitan D Domin": "Comitan"
+               
+              "Chihuahua":
+                "Parral": "Hidalgo del Parral"
+              
+              "Colima":
+                "Manzanillo Col": "Manzanillo"
+                "Manzanillo.": "Manzanillo"
+             
+              "Guanajuato":
+                "Silao": "Silao de la Victoria"
+                "Sn Fco Del Rinc": "San Francisco del Rincón"
+
+              "Guerrero":
+                "Acapulco": "Acapulco de Juárez"
+                "Altamirano": "Pungarabato"
+                "Ayutla": "Ayutla de los Libres"
+                "Chilpancingo": "Chilpancingo de los Bravo"
+                "Taxco": "Taxco de Alarcón"
+                "Zihuatanejo": "Zihuatanejo de Azueta"
+                "Zumpango": "Eduardo Neri"
+             
+              "Hidalgo":
+                "Pachuca": "Pachuca de Soto"
+                "Tepeji Del Rio": "Tepeji del Río de Ocampo"
+                "Tula Hgo": "Tula de Allende"
+                "Tulancingo": "Tulancingo de Bravo"
+             
+              "Jalisco":
+                "Ahualulco": "Ahualulco de Mercado"
+                "Atotonilco": "Atotonilco el Alto"
+                "Cd Guzman Jal": "Zapotlán el Grande"
+                "San Martin De H": "San Martín Hidalgo"
+                "Tepatitlan": "Tepatitlán de Morelos"
+                "Tlaquepaque": "San Pedro Tlaquepaque"
+                "Yahualica": "Yahualica de González Gallo"
+             
+              "Michoacan":
+                "Reyes De Salgad": "Los Reyes"
+             
+              "Mexico":
+                "Los Reyes La Pa": "La Paz"
+                "Santiago Tiangu": "Tianguistenco"
+                "Sn Vicente Chic": "Chicoloapan"
+             
+              "Nayarit":
+                "La Peita De Ja": "Compostela"
+                "Las Varas": "Compostela"
+                "Cadereyta": "Cadereyta Jiménez"
+                "Sn Nicolas De L": "San Nicolás de los Garza"
+             
+              "Oaxaca":
+                "Acatlan De Pere": "Acatlán de Pérez Figueroa"
+                "Bahias De Huatu": "Santa María Huatulco"
+                "Ejutla De Cresp": "Heroica Ciudad de Ejutla de Crespo"
+                "Huajuapan De Le": "Heroica Ciudad de Huajuapan de León"
+                "Ixtepec": "Ciudad Ixtepec"
+                "Jalapa De Diaz": "San Felipe Jalapa de Díaz"
+                "Juchitan De Zar": "Juchitán de Zaragoza"
+                "Maria Lombardo": "San Juan Cotzocón"
+                "Matias Romero": "Matías Romero Avendaño"
+                "Miahuatlan De P": "Miahuatlán de Porfirio Díaz"
+                "Oaxaca": "Oaxaca de Juárez"
+                "Puerto Escondido": "San Pedro Mixtepec"
+                "Putla De Guerrero": "Putla Villa de Guerrero"
+                "Santiago Juxtla": "Santiago Juxtlahuaca"
+                "Santiago Pinot": "Santiago Pinotepa Nacional"
+                "Tehuantepec": "Santo Domingo Tehuantepec"
+                "Tlaxiaco": "Heroica Ciudad de Tlaxiaco"
+                "Tuxtepec Oax": "San Juan Bautista Tuxtepec"
+                "Valle Nacional": "San Juan Bautista Valle "
+                "Xoxocotlan": "Santa Cruz "
+                "Zimatlan": "Zimatlán de Álvarez"
+             
+              "Queretaro":
+                "Playa Del Carme": "Solidaridad"
+             
+              "Sinaloa":
+                "Guamuchil": "Salvador Alvarado"
+                "Juan Jose Rios": "Guasave"
+                "La Cruz De Elot": "Elota"
+                "Los Mochis": "Ahome"
+                "Mochicahui": "El Fuerte"
+                "El Dorado": "Culiacán"
+  
+  # Task `transform` takes `metadata` as argument.
+  # `metadata` is a list of dimension tables.
+  - task_name: transform
+    task_args:
+      metadata:
+        - name: dim_stores
+          type: dimension
+          merge_on: store
+          id_cols:
+            - store
+            - admin1name
+            - admin2name
+
+        - name: dim_products
+          type: dimension
+          merge_on: sku
+          id_cols:
+            - sku
+
+  # Task `load` takes `targets` as argument.
+  # `targets` is a list of writing destinations.
+  - task_name: load
+    task_args:
+      targets:
+        - name: "dim_products"
+          path: "s3a://${client}-analytics-${region}-${env}/dim_products"
+          format: "parquet"
+
+        - name: "dim_stores"
+          path: "s3a://${client}-staging-${region}-${env}/dim_stores"
+          format: "parquet"
+
+        - name: "main"
+          path: "s3a://${client}-analytics-${region}-${env}/fact_table"
+          format: "parquet"
